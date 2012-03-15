@@ -9,11 +9,8 @@
 	var world	= tQuery.createWorld().boilerplate().start();
 	var object	= tQuery.createTorus().addTo(world);
 
-	var axis	= new THREE.AxisHelper();
-	var scale	= 1/100;
-	axis.scale.set(scale, scale, scale);
-	object.get(0).add(axis);
-	//world.add(axis);
+	// just for debug
+	tQuery.createAxis().addTo(object);
 
 	// fixed camera and moving object around camera
 	if( false ){
@@ -74,9 +71,28 @@
 	//webaudio.volume(0.5);
 console.log("object", object.get(0));
 	
-	var sound	= new THREEx.WebAudio.Sound(webaudio);
+	var soundUrl	= 'sounds/techno.mp3';
+	soundUrl	= 'sounds/kick.wav';
+	var sound	= new THREEx.WebAudio.Sound(webaudio, soundUrl, function(sound){
+		sound._source.loop	= true;
+		sound.play();
+	});
 	//sound.volume(0.5);
 	//sound.pannerCone(Math.PI, 0, 0.2);
+	
+	var analyser	= sound._analyser;
+	var freqByte	= new Uint8Array(analyser.frequencyBinCount);
+	analyser.smoothingTimeConstant = 0.6;
+	world.loop().hook(function(){
+		analyser.getByteFrequencyData(freqByte);
+		var nb		= 2;
+		var total	= 0;
+		for(var i = 0; i < nb; i++){
+			total	+= freqByte[i];
+		}
+		var scale	= total / (nb*256-1);
+		object.scale(scale*1.5+0.5);
+	})
 
 	world.loop().hook(function(deltaTime){
 		webaudio.updateListener(world.camera(), deltaTime)

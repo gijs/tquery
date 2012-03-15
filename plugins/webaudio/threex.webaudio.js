@@ -6,6 +6,10 @@
  *
  * Spec:
  * https://dvcs.w3.org/hg/audio/raw-file/tip/webaudio/specification.html
+ *
+ * Chromium Demo:
+ * http://chromium.googlecode.com/svn/trunk/samples/audio/index.html  <- running page
+ * http://code.google.com/p/chromium/source/browse/trunk/samples/audio/ <- source
 */
 
 /**
@@ -113,44 +117,32 @@ THREEx.WebAudio.prototype.updateListener	= function(object3d, deltaTime){
 
 
 /**
- * FIXME - arch error
- * - you create a sound which is attached to webaudio
- * - this sound may be bound to the position of a object3D
+ * FIXME - lack of configurability
+ * - 
 */
 
-THREEx.WebAudio.Sound	= function(webaudio){
+THREEx.WebAudio.Sound	= function(webaudio, url, callback){
 	console.assert( webaudio instanceof THREEx.WebAudio );
 	this._webaudio	= webaudio;
 	this._context	= webaudio.context();
 
-if( false ){
 	this._source	= this._context.createBufferSource();
-}else{
-	this._source	= this._context.createJavaScriptNode(1024*16, 1, 1);
-	var x	= 0
-	this._source.onaudioprocess = function(event){
-		var data	= event.outputBuffer.getChannelData(0);
-		console.dir("data", data)
-		for( var i = 0; i < data.length; i++ ){
-			data[i] = Math.sin(x++);
-		}
-	};	
-}
-
 	this._gainNode	= this._context.createGainNode();
 	this._pannerNode= this._context.createPanner();
+	this._analyser	= this._context.createAnalyser();
+	this._analyser.fftSize = 1024;
+
+	// connect nodes
 	this._source.connect( this._gainNode );
 	this._gainNode.connect( this._pannerNode );
-	this._pannerNode.connect( this._webaudio._entryNode() );
+	this._pannerNode.connect( this._analyser );
+	this._analyser.connect( this._webaudio._entryNode() );
 
-
-	//// TODO this hardcoded source MUST NOT stay obviously
-	//this._loadAndDecodeSound('sounds/techno.mp3', function(buffer){
-	//	this._source.buffer	= buffer;
-	//	this._source.loop	= true;
-	//	this.play();
-	//	console.log(this._context.listener);
-	//}.bind(this));
+	// TODO this hardcoded source MUST NOT stay obviously
+	this._loadAndDecodeSound(url, function(buffer){
+		this._source.buffer	= buffer;
+		callback && callback(this);
+	}.bind(this));
 };
 
 THREEx.WebAudio.Sound.prototype.destroy	= function(){
